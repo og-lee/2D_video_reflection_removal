@@ -1,0 +1,13 @@
+results/
+saved_models/
+dataset1/
+data/
+dataset1/
+dataset2/
+dataset3/
+
+
+*.jpg
+*.png
+*.pth
+*.pyc
