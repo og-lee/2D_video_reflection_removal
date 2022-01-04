@@ -154,7 +154,6 @@ class Trainer:
         masks_guidance = masks_guidance.float().cuda()
       else:
         masks_guidance = None
-      info = input_dict["info"]
       data_time.update(time.time() - end)
       input_var = input_synth.float().cuda()
       # compute output
@@ -175,6 +174,7 @@ class Trainer:
       pretrans = torch.reshape(torch.transpose(pred,1,2),(-1,pred.shape[1],pred.shape[3],pred.shape[4]))
       pretrans = pretrans[:,0:3,:,:]
       perloss = self.criterionVgg(intrans, pretrans)
+      perloss = perloss * 0.01
       loss_dict['perloss'] = perloss
       loss_dict['total_loss'] += perloss
       total_loss = loss_dict['total_loss']
@@ -212,7 +212,7 @@ class Trainer:
                            for k, v in self.losses.val.items()])
 
       if args.local_rank == 0:
-        if self.iteration % 10 == 0: 
+        if self.iteration % 1 == 0: 
           print('[Iter: {0}]Epoch: [{1}][{2}/{3}]\t'
                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                 'Data Time {data_time.val:.3f} ({data_time.avg:.3f})\t'
@@ -309,6 +309,14 @@ class Trainer:
           input_ref = input_ref.float().cuda()
 
           # psnr 
+          # p = PSNR()
+          # psnrs = []
+          # print(i)
+          # for idx in range(len(input_trans)):
+          #   val = p(pred_trans[idx]*255.0,input_trans[idx]*255.0)
+          #   psnrs.append(val)
+          # print(psnrs)
+
           mse_trans = torch.mean((255*(pred_trans - input_trans))**2, dim=(1,2,3))
           mse_ref = torch.mean((255*(pred_ref - input_ref))**2, dim=(1,2,3))
 
@@ -339,6 +347,7 @@ class Trainer:
             #   flush=True)
       trans_psnr_total.append(torch.mean(torch.tensor(psnr_trans_arr)))
       trans_ssim_total.append(torch.mean(torch.tensor(ssim_trans_arr)))
+    print('total psnr')
     print('trans psnr',trans_psnr_total)
     print('trans ssim',trans_ssim_total)
     if args.local_rank == 0:
@@ -358,7 +367,9 @@ class Trainer:
       #     encoder.freeze_batchnorm()
       # self.criterionVgg = VGGLoss1(torch.device('cuda'), vgg=self.vgg, normalize=False)
       self.criterionVgg = vgg.VGGLoss1(torch.device('cuda'), vgg=self.vgg, normalize=True)
-      # val_loss = self.eval()
+
+      val_loss = self.eval()
+
       start_epoch = self.epoch
       for epoch in range(start_epoch, self.cfg.TRAINING.NUM_EPOCHS):
         self.epoch = epoch
@@ -382,9 +393,10 @@ class Trainer:
         val_loss = self.eval()
 
     elif args.task == 'eval':
-      eval_all = True
+      eval_all = False
       if eval_all:
-        list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percept/')
+        # list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percept/')
+        list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percept_newloader/')
         for f in list_pths: 
           if f.endswith('.pth'): 
             args.wts = args.wts.rsplit('/',1)[0] +'/'

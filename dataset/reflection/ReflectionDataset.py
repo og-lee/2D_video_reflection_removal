@@ -44,7 +44,7 @@ class ReflectionDataset(VideoDataset):
         support_indices = np.random.choice(index_range, min(self.tw, len(index_range)), replace=False)
         support_indices = np.sort(np.append(support_indices, np.repeat([index],
                                                                    self.tw - len(support_indices))))
-
+        
         # print(support_indices)
         return support_indices
 
@@ -78,7 +78,7 @@ class ReflectionDataset(VideoDataset):
                 img_list_ref = list(glob.glob(os.path.join(image_dir_ref, _video, '*.jpg')))
                 img_list_trans = list(glob.glob(os.path.join(image_dir_trans, _video, '*.jpg')))
                 img_list_synth = list(glob.glob(os.path.join(image_dir_synth, _video, '*.jpg')))
-
+                
                 # img_list.sort()
                 img_list_ref.sort()
                 img_list_trans.sort()

@@ -57,7 +57,8 @@ class ReflectionDataset1(VideoDataset):
         # image_dir_synth = os.path.join(self.root, 'data', self.mode,'synthetic')
 
         # self.mode = 'train'
-        image_dir = os.path.join(self.root,  self.mode,'reflect')
+        image_dir = os.path.join(self.root,  self.mode)
+
         image_dir_ref = os.path.join(self.root,  self.mode,'reflect')
         image_dir_trans = os.path.join(self.root,  self.mode,'trans')
         image_dir_synth = os.path.join(self.root,  self.mode,'synthetic')
@@ -74,58 +75,59 @@ class ReflectionDataset1(VideoDataset):
                 _video = line.rstrip('\n')
                 self.videos += [_video]
 
-                img_list = list(glob.glob(os.path.join(image_dir, _video, '*.jpg')))
 
-                img_list_ref = list(glob.glob(os.path.join(image_dir_ref, _video, '*.jpg')))
-                img_list_trans = list(glob.glob(os.path.join(image_dir_trans, _video, '*.jpg')))
-                img_list_synth = list(glob.glob(os.path.join(image_dir_synth, _video, '*.jpg')))
+                if self.mode == 'train': 
+                    img_list = list(glob.glob(os.path.join(image_dir, _video, '*.jpg')))
+                    img_list.sort()
+                    num_frames = len(glob.glob(os.path.join(image_dir, _video, '*.jpg')))
+                    self.num_frames[_video] = num_frames
+                    img1 = np.array(Image.open(os.path.join(image_dir, _video, '0.jpg')).convert("P"))
 
-                img_list.sort()
+                    for i, img in enumerate(img_list):
+                        sample = {INFO: {}, IMAGES_: []}
+                        support_indices = self.get_support_indices(i, _video)
+                        sample[INFO]['support_indices'] = support_indices
+                        images = [os.path.join(image_dir, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
 
-                img_list_ref.sort()
-                img_list_trans.sort()
-                img_list_synth.sort()
-                # self.videos.append(_video)
+                        sample[IMAGES_] = images
 
-                num_frames = len(glob.glob(os.path.join(image_dir, _video, '*.jpg')))
-                # num_frames = len(glob.glob(os.path.join(image_dir_ref, _video, '*.jpg')))
-                self.num_frames[_video] = num_frames
+                        sample[INFO]['video'] = _video
+                        sample[INFO]['num_frames'] = num_frames
+                        sample[INFO]['shape'] = np.shape(img1)
 
-                # _mask_file = os.path.join(mask_dir, _video, '00000.png')
-                # _mask = np.array(Image.open(os.path.join(mask_dir, _video, '00000.png')).convert("P"))
-                img1 = np.array(Image.open(os.path.join(image_dir_synth, _video, '0.jpg')).convert("P"))
-                img = np.array(Image.open(os.path.join(image_dir, _video, '0.jpg')).convert("P"))
-                # print(os.path.join(image_dir_synth, _video, '0.jpg'))
-                # num_objects = np.max(_mask)
-                # self.num_objects[_video] = num_objects
-                # self.shape[_video] = np.shape(_mask)
+                        self.samples+=[sample]
 
-                for i, img in enumerate(img_list):
-                # for i, img in enumerate(img_list_synth):
-                    #   sample = {INFO: {}, IMAGES_: [], TARGETS: []}
-                    # sample = {INFO: {}, IMAGES_REF: [], IMAGES_TRANS: [], IMAGES_SYNTH: []}
-                    sample = {INFO: {}, IMAGES_: []}
-                    support_indices = self.get_support_indices(i, _video)
-                    sample[INFO]['support_indices'] = support_indices
-                    images = [os.path.join(image_dir, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
-                    # images_ref = [os.path.join(image_dir_ref, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
-                    # images_trans = [os.path.join(image_dir_trans, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
-                    # images_synth = [os.path.join(image_dir_synth, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
+                elif self.mode == 'test':
+                    img_list_ref = list(glob.glob(os.path.join(image_dir_ref, _video, '*.jpg')))
+                    img_list_trans = list(glob.glob(os.path.join(image_dir_trans, _video, '*.jpg')))
+                    img_list_synth = list(glob.glob(os.path.join(image_dir_synth, _video, '*.jpg')))
+                    img_list_ref.sort()
+                    img_list_trans.sort()
+                    img_list_synth.sort()
+                
+                    num_frames = len(glob.glob(os.path.join(image_dir_ref, _video, '*.jpg')))
+                    self.num_frames[_video] = num_frames
+                    img1 = np.array(Image.open(os.path.join(image_dir_synth, _video, '0.jpg')).convert("P"))
 
-                    #   images = [os.path.join(image_dir, _video, '{:05d}.jpg'.format(s)) for s in np.sort(support_indices)]
-                    #   targets = [os.path.join(mask_dir, _video, '{d}.png'.format(s)) for s in np.sort(support_indices)]
-                    sample[IMAGES_] = images
-                    # sample[IMAGES_REF] = images_ref
-                    # sample[IMAGES_TRANS] = images_trans
-                    # sample[IMAGES_SYNTH] = images_synth
-                    #   sample[TARGETS] = targets
 
-                    sample[INFO]['video'] = _video
-                    sample[INFO]['num_frames'] = num_frames
-                    #   sample[INFO]['num_objects'] = num_objects
-                    sample[INFO]['shape'] = np.shape(img1)
+                    for i, img in enumerate(img_list_synth):
+                        sample = {INFO: {}, IMAGES_REF: [], IMAGES_TRANS: [], IMAGES_SYNTH: []}
+                        support_indices = self.get_support_indices(i, _video)
+                        sample[INFO]['support_indices'] = support_indices
+                        images_ref = [os.path.join(image_dir_ref, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
+                        images_trans = [os.path.join(image_dir_trans, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
+                        images_synth = [os.path.join(image_dir_synth, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
 
-                    self.samples+=[sample]
+                        sample[IMAGES_REF] = images_ref
+                        sample[IMAGES_TRANS] = images_trans
+                        sample[IMAGES_SYNTH] = images_synth
+
+                        sample[INFO]['video'] = _video
+                        sample[INFO]['num_frames'] = num_frames
+                        sample[INFO]['shape'] = np.shape(img1)
+
+                        self.samples+=[sample]
+
         self.raw_samples = self.samples
 
 

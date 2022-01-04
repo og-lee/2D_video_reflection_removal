@@ -179,7 +179,7 @@ def get_datasets(cfg):
     raise ValueError("Dataset {} not found.".format(cfg.DATASETS.TEST))
   test_dataset_class = list(dataset_classes)[class_index]
   test_dataset = build_dataset(test_dataset_class, False, cfg)
-
+  
   return train_dataset, test_dataset
 
 

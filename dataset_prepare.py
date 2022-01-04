@@ -55,9 +55,6 @@ def synthesize_nonlinear(trans, ref):
     ref = cv2.GaussianBlur(ref,(5,5),beta)
 
 
-
-
-
 def synthesize_linear(trans, ref, alpha, beta, int_map): 
     original_shape = trans.shape
     original_img = ref 
@@ -75,9 +72,27 @@ def synthesize_linear(trans, ref, alpha, beta, int_map):
     trans_int = np.int64(trans)
     ref_int = np.int64(ref)
     # ref and trans aquired 
-    for i in range(len(trans)): 
-        # N x 3 
-        new_frame[i] = int_map[trans_int[i],ref_int[i]]
+    # print(len(trans))
+
+    # trying this one , no loop
+    tr = trans_int[:,0] 
+    tg = trans_int[:,1]
+    tb = trans_int[:,2]
+    rr = ref_int[:,0]
+    rg = ref_int[:,1]
+    rb = ref_int[:,2]
+
+    nr = int_map[tr,rr]
+    ng = int_map[tg,rg]
+    nb = int_map[tb,rb]
+    
+    new_frame = np.vstack((nr,ng,nb))
+    new_frame = new_frame.T
+    
+
+    # for i in range(len(trans)): 
+    #     # N x 3 
+    #     new_frame[i] = int_map[trans_int[i],ref_int[i]]
     
     new_frame = np.reshape(new_frame,original_shape)
 
@@ -115,14 +130,11 @@ def synthesize_video1(trans_frames, reflec_frames, int_map, alpha, beta):
     new_frame_arr = []
     new_ref_arr = []
     for idx in range(frame_length): 
-        print(idx,' done')
-        img, imgref = synthesize_linear(trans_frames[idx], reflec_frames[0],alpha,beta,int_map)
+        img, imgref = synthesize_linear(trans_frames[idx], reflec_frames[idx],alpha,beta,int_map)
         new_frame_arr.append(img)
         new_ref_arr.append(imgref)
 
     return new_frame_arr, new_ref_arr
-
-
 
 
 def main(): 

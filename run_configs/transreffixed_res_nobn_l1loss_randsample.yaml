@@ -22,7 +22,7 @@ MODEL:
 TRAINING:
   BATCH_SIZE: 4
   OPTIMISER: "Adam"
-  BASE_LR: 0.0002
+  BASE_LR: 0.0001
   LR_SCHEDULERS: ["exponential", "step"]
   STEPS: (60000, 80000)
   MAX_ITER: 90000
@@ -49,9 +49,9 @@ INPUT:
 DATASETS:
   TRAIN: "ReflectionDataset1"
   # TRAIN_ROOT: "/root/workplace//middle_project/"
-  TRAIN_ROOT: "/root/workplace/middle_project/dataset3/"
+  TRAIN_ROOT: "/root/workplace/middle_project/dataset1/"
   TEST: "ReflectionDataset1"
-  TEST_ROOT: "/root/workplace/middle_project/dataset3/"
+  TEST_ROOT: "/root/workplace/middle_project/dataset1/"
   MAX_TEMPORAL_GAP: 8
   IMSET : 'test.txt'
   # IMSET : 'train.txt'
@@ -60,4 +60,4 @@ DATALOADER:
   NUM_WORKERS: 4
 INFERENCE:
   ENGINE : "ReflectionInferenceEngine"
-NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss'
+NAME: 'transreffixed_res_nobn_l1loss_percept_trainingexample'
