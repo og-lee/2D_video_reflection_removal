@@ -160,84 +160,86 @@ def main():
         files = os.listdir(fold)
         reflect_filenames.append(files)
 
-    # for i in range(len(trans_filenames)): 
-    #     tlen = len(trans_filenames[i])
-    #     rlen = len(reflect_filenames[i])
-    #     shorter = min([tlen, rlen]) 
+    for i in range(len(trans_filenames)): 
+        tlen = len(trans_filenames[i])
+        rlen = len(reflect_filenames[i])
+        shorter = min([tlen, rlen]) 
         
-    #     alpha = np.random.uniform(0.2,0.9)
-    #     beta = np.random.uniform(0,5)
-    #     timages = []
-    #     rimages = []
-    #     for j in range(shorter): 
-    #         tfile = os.path.join(video_path,trans_folders[i],trans_filenames[i][j])
-    #         rfile = os.path.join(video_path,reflect_folders[i],reflect_filenames[i][j])
-    #         if "@" in tfile: 
-    #             continue
-    #         timg = cv2.imread(tfile)
-    #         rimg = cv2.imread(rfile)
-    #         timg = cv2.resize(timg,(256,256))
-    #         rimg = cv2.resize(rimg,(256,256))
-    #         timages.append(timg)
-    #         rimages.append(rimg)
-        
-    #     # for ind, image in enumerate(timages): 
-    #     #     temp_transdir = os.path.join(CURDIR,'dataset1','trans',str(i))
-    #     #     if not os.path.isdir(temp_transdir):
-    #     #         os.mkdir(os.path.join(temp_transdir))
-    #     #     save_transfile = os.path.join(temp_transdir,str(ind)+'.jpg') 
-    #     #     cv2.imwrite(save_transfile,timages[ind])
-        
-
-    #     # synth_images, ref_images = synthesize_video(timages, rimages, nonlinear_int_map,alpha,beta)
-    #     synth_images, ref_images = synthesize_video1(timages, rimages, nonlinear_int_map,alpha,beta)
-        
-    #     with open(os.path.join(CURDIR,'dataset3','intmap.npy'), 'wb') as f: 
-    #         np.save(f,int_map)
-
-    #     synthetic_dir = os.path.join(CURDIR,'dataset3','synthetic',str(i))
-    #     if not os.path.isdir(synthetic_dir):
-    #         os.makedirs(synthetic_dir)
-
-    #     temp_refdir = os.path.join(CURDIR,'dataset3','reflect',str(i))
-    #     if not os.path.isdir(temp_refdir):
-    #         os.makedirs(temp_refdir)
-        
-    #     temp_transdir = os.path.join(CURDIR,'dataset3','trans',str(i))
-    #     if not os.path.isdir(temp_transdir):
-    #         os.makedirs(os.path.join(temp_transdir))
-
-
-    #     for ind, image in enumerate(synth_images):
-    #         save_file = os.path.join(synthetic_dir,str(ind)) 
-    #         save_file = save_file + '.jpg'
-    #         cv2.imwrite(save_file,image)
-
-    #         save_reffile = os.path.join(temp_refdir,str(ind)+'.jpg') 
-    #         # cv2.imwrite(save_reffile,rimages[ind])
-    #         cv2.imwrite(save_reffile,ref_images[ind])
-
-    #         save_transfile = os.path.join(temp_transdir,str(ind)+'.jpg') 
-    #         cv2.imwrite(save_transfile,timages[ind])
-
-    for i in range(len(train_filenames)): 
-        trainimages = []
-        for j in range(len(train_filenames[i])):
-            trainfile = os.path.join(video_path,train_folders[i],train_filenames[i][j]) 
-            if '@' in trainfile: 
+        alpha = np.random.uniform(0.5,0.8)
+        beta = np.random.uniform(0,5)
+        timages = []
+        rimages = []
+        for j in range(shorter): 
+            tfile = os.path.join(video_path,trans_folders[i],trans_filenames[i][j])
+            rfile = os.path.join(video_path,reflect_folders[i],reflect_filenames[i][j])
+            if "@" in tfile: 
                 continue
-            trainimg = cv2.imread(trainfile)
-            trainimg = cv2.resize(trainimg,(256,256))
-            trainimages.append(trainimg)
+            timg = cv2.imread(tfile)
+            rimg = cv2.imread(rfile)
+            timg = cv2.resize(timg,(256,256))
+            rimg = cv2.resize(rimg,(256,256))
+            timages.append(timg)
+            rimages.append(rimg)
+        
+        # for ind, image in enumerate(timages): 
+        #     temp_transdir = os.path.join(CURDIR,'dataset1','trans',str(i))
+        #     if not os.path.isdir(temp_transdir):
+        #         os.mkdir(os.path.join(temp_transdir))
+        #     save_transfile = os.path.join(temp_transdir,str(ind)+'.jpg') 
+        #     cv2.imwrite(save_transfile,timages[ind])
+        
 
-            train_dir = os.path.join(CURDIR,'dataset3','train',str(i))
-            if not os.path.isdir(train_dir):
-                os.makedirs(train_dir)
+        # synth_images, ref_images = synthesize_video(timages, rimages, nonlinear_int_map,alpha,beta)
+        synth_images, ref_images = synthesize_video1(timages, rimages, nonlinear_int_map,alpha,beta)
+        
+        
+
+        synthetic_dir = os.path.join(CURDIR,'dataset4','synthetic',str(i))
+        if not os.path.isdir(synthetic_dir):
+            os.makedirs(synthetic_dir)
+
+        with open(os.path.join(CURDIR,'dataset4','intmap.npy'), 'wb') as f: 
+            np.save(f,int_map)
+
+        temp_refdir = os.path.join(CURDIR,'dataset4','reflect',str(i))
+        if not os.path.isdir(temp_refdir):
+            os.makedirs(temp_refdir)
+        
+        temp_transdir = os.path.join(CURDIR,'dataset4','trans',str(i))
+        if not os.path.isdir(temp_transdir):
+            os.makedirs(os.path.join(temp_transdir))
+
+
+        for ind, image in enumerate(synth_images):
+            save_file = os.path.join(synthetic_dir,str(ind)) 
+            save_file = save_file + '.jpg'
+            cv2.imwrite(save_file,image)
+
+            save_reffile = os.path.join(temp_refdir,str(ind)+'.jpg') 
+            # cv2.imwrite(save_reffile,rimages[ind])
+            cv2.imwrite(save_reffile,ref_images[ind])
+
+            save_transfile = os.path.join(temp_transdir,str(ind)+'.jpg') 
+            cv2.imwrite(save_transfile,timages[ind])
+
+    # for i in range(len(train_filenames)): 
+    #     trainimages = []
+    #     for j in range(len(train_filenames[i])):
+    #         trainfile = os.path.join(video_path,train_folders[i],train_filenames[i][j]) 
+    #         if '@' in trainfile: 
+    #             continue
+    #         trainimg = cv2.imread(trainfile)
+    #         trainimg = cv2.resize(trainimg,(256,256))
+    #         trainimages.append(trainimg)
+
+    #         train_dir = os.path.join(CURDIR,'dataset3','train',str(i))
+    #         if not os.path.isdir(train_dir):
+    #             os.makedirs(train_dir)
             
-            for ind, image in enumerate(trainimages):
-                save_file = os.path.join(train_dir,str(ind)) 
-                save_file = save_file + '.jpg'
-                cv2.imwrite(save_file,image)
+    #         for ind, image in enumerate(trainimages):
+    #             save_file = os.path.join(train_dir,str(ind)) 
+    #             save_file = save_file + '.jpg'
+    #             cv2.imwrite(save_file,image)
 
 
 

@@ -226,7 +226,7 @@ class VideoDataset(BaseDataset):
       trans_tensors_resized = self.read_sample(sample)
       ref_tensors_resized = self.read_sample(ref_sample)
 
-      alpha = np.random.uniform(0.2,0.9)
+      alpha = np.random.uniform(0.4,0.9)
       beta = np.random.uniform(0,5)
       synth_images, ref_images = synthesize_video1(trans_tensors_resized['images'], ref_tensors_resized['images'], self.nonlinear_map, alpha, beta)
 

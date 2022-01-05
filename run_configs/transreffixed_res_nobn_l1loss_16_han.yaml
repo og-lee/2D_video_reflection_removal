@@ -1,6 +1,6 @@
 VERSION: 2
 MODEL:
-  NETWORK: "ReflectionTransRes"
+  NETWORK: "ReflectionTransResHan"
   # NETWORK: "SaliencyNetwork"
   PRETRAINED: True
   WEIGHTS: "saved_models/csn/irCSN_152_ft_kinetics_from_ig65m_f126851907.pth"
@@ -45,14 +45,14 @@ INPUT:
   # RESIZE_SHAPE_TEST: (256, 455)
   RESIZE_SHAPE_TEST: (256, 256)
   # RESIZE_SHAPE_TEST: (320, 570)
-  TW: 8
+  TW: 4
 DATASETS:
   TRAIN: "ReflectionDataset1"
   # TRAIN_ROOT: "/root/workplace//middle_project/"
   TRAIN_ROOT: "/root/workplace/middle_project/dataset3/"
   TEST: "ReflectionDataset1"
-  TEST_ROOT: "/root/workplace/middle_project/dataset3/"
-  MAX_TEMPORAL_GAP: 8
+  TEST_ROOT: "/root/workplace/middle_project/dataset4/"
+  MAX_TEMPORAL_GAP: 4
   IMSET : 'test.txt'
   # IMSET : 'train.txt'
 DATALOADER:
@@ -61,5 +61,5 @@ DATALOADER:
 INFERENCE:
   ENGINE : "ReflectionInferenceEngine"
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_100iter_2b'
-NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_v3'
+NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han'
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss'

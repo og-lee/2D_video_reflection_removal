@@ -49,6 +49,7 @@ class PSNR:
         return 20 * torch.log10(255.0 / torch.sqrt(mse))
 
 
+
 class Trainer:
   def __init__(self, args, port):
     cfg = get_cfg()
@@ -212,7 +213,7 @@ class Trainer:
                            for k, v in self.losses.val.items()])
 
       if args.local_rank == 0:
-        if self.iteration % 1 == 0: 
+        if self.iteration % 10 == 0: 
           print('[Iter: {0}]Epoch: [{1}][{2}/{3}]\t'
                 'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                 'Data Time {data_time.val:.3f} ({data_time.avg:.3f})\t'
@@ -229,6 +230,11 @@ class Trainer:
             os.makedirs(self.model_dir)
           save_name = '{}/{}.pth'.format(self.model_dir, self.iteration)
           save_checkpointV2(self.epoch, self.iteration, self.model, self.optimiser, save_name)
+
+        if self.iteration % 1000 == 0:
+          self.eval()
+
+
 
     if args.local_rank == 0:
       print('Finished Train Epoch {} Loss {losses.avg}'.
@@ -368,7 +374,7 @@ class Trainer:
       # self.criterionVgg = VGGLoss1(torch.device('cuda'), vgg=self.vgg, normalize=False)
       self.criterionVgg = vgg.VGGLoss1(torch.device('cuda'), vgg=self.vgg, normalize=True)
 
-      val_loss = self.eval()
+      # val_loss = self.eval()
 
       start_epoch = self.epoch
       for epoch in range(start_epoch, self.cfg.TRAINING.NUM_EPOCHS):
@@ -393,10 +399,10 @@ class Trainer:
         val_loss = self.eval()
 
     elif args.task == 'eval':
-      eval_all = False
+      eval_all = True 
       if eval_all:
         # list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percept/')
-        list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percept_newloader/')
+        list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_12_after/')
         for f in list_pths: 
           if f.endswith('.pth'): 
             args.wts = args.wts.rsplit('/',1)[0] +'/'

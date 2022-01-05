@@ -162,7 +162,7 @@ def main():
         rlen = len(reflec_filenames[i])
         shorter = min([tlen, rlen]) 
         
-
+        
         
         alpha = np.random.uniform(0.2,0.9)
         beta = np.random.uniform(0,5)

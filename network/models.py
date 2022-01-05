@@ -289,11 +289,11 @@ class UnetEncoder3d(nn.Module):
 class UnetResBlock(nn.Module): 
   def __init__(self, inchannel, outchannel, pools = (2,2,2) , poolk = (3,3,3), poolp = (1,1,1)):
     super(UnetResBlock, self).__init__()
-    self.conv1 = nn.Conv3d(inchannel, inchannel, kernel_size=3,padding = 1)
+    self.conv1 = nn.Conv3d(inchannel, inchannel, kernel_size=3,padding = 1, padding_mode = 'replicate')
     self.bn1 = nn.BatchNorm3d(inchannel)
-    self.conv2 = nn.Conv3d(inchannel, inchannel, kernel_size=3,padding = 1)
+    self.conv2 = nn.Conv3d(inchannel, inchannel, kernel_size=3,padding = 1, padding_mode = 'replicate')
     self.bn2 = nn.BatchNorm3d(inchannel)
-    self.conv3 = nn.Conv3d(inchannel, outchannel, kernel_size=3,padding = 1,stride = 2)
+    self.conv3 = nn.Conv3d(inchannel, outchannel, kernel_size=3,padding = 1,stride = 2, padding_mode = 'replicate')
     self.bn3 = nn.BatchNorm3d(outchannel)
 
   def forward(self, x): 
@@ -318,12 +318,14 @@ class UnetResEncoder3d(nn.Module):
     # self.conv1_p = nn.Conv3d(1, 64, kernel_size=7, stride=(1, 2, 2),
                             #  padding=(3, 3, 3), bias=False)
     # self.block1 = UnetBlock(3,64,poolk=(1,3,3), pools=(1,2,2), poolp=(0,1,1))
-    self.conv1 = nn.Conv3d(3, 64, kernel_size=3,padding = 1)
+    self.conv1 = nn.Conv3d(3, 64, kernel_size=3,padding = 1, padding_mode = 'replicate')
     self.bn1 = nn.BatchNorm3d(64)
     self.block1 = UnetResBlock(64,64)
     self.block2 = UnetResBlock(64,128)
     self.block3 = UnetResBlock(128,256)
     self.block4 = UnetResBlock(256,512)
+
+    self.block5 = UnetResBlock(512,1024)
     
     self.register_buffer('mean', torch.FloatTensor(pixel_mean).view(1, 3, 1, 1, 1))
     self.register_buffer('std', torch.FloatTensor(pixel_std).view(1, 3, 1, 1, 1))
@@ -340,38 +342,32 @@ class UnetResEncoder3d(nn.Module):
     s2, s22 = self.block2(s11)
     s3, s33 = self.block3(s22)
     s4, s44 = self.block4(s33)
-    # print(s1.shape)
-    # print(s2.shape)
-    # print(s3.shape)
-    # print(s4.shape)
-    # print(s44.shape)
+    s5, s55 = self.block5(s44)
 
-    return s44, s4, s3, s2, s1 
+    return s55, s5, s4, s3, s2, s1 
 
 class UnetDecoderBlock(nn.Module): 
   def __init__(self, inchannel, outchannel, ksize = (2,2,2), ssize = (2,2,2)):
     super(UnetDecoderBlock, self).__init__()
     # self.upconv1 = nn.ConvTranspose3d(inchannel, outchannel, 2, stride=2)
     self.upconv1 = nn.ConvTranspose3d(inchannel, outchannel, ksize, ssize)
-    self.bn1 = nn.BatchNorm3d(outchannel)
+    # self.bn1 = nn.BatchNorm3d(outchannel)
     # concat
-    self.conv1 =  nn.Conv3d(outchannel*2,outchannel, kernel_size=3, padding = 1)
-    self.bn2 = nn.BatchNorm3d(outchannel)
-    self.conv2 = nn.Conv3d(outchannel,outchannel, kernel_size=3, padding = 1)
-    self.bn3 = nn.BatchNorm3d(outchannel)
+    self.conv1 =  nn.Conv3d(outchannel*2,outchannel, kernel_size=3, padding = 1, padding_mode = 'replicate')
+    # self.bn2 = nn.BatchNorm3d(outchannel)
+    self.conv2 = nn.Conv3d(outchannel,outchannel, kernel_size=3, padding = 1, padding_mode = 'replicate')
+    # self.bn3 = nn.BatchNorm3d(outchannel)
 
   def forward(self, x, skip): 
     x = self.upconv1(x)
-    x = self.bn1(x)
     x = F.relu(x)
     x = torch.cat((x, skip), dim = 1)
     x = self.conv1(x)
-    x = self.bn2(x)
     x = F.relu(x)
     x = self.conv2(x)
-    x = self.bn3(x)
     x = F.relu(x)
     return x
+
 
 class DecoderBlockInter(nn.Module):
   def __init__(self, inchannel, outchannel, ksize = (2,2,2)):
@@ -408,17 +404,20 @@ class DecoderBlockInter(nn.Module):
 class UnetDecoder3d(nn.Module): 
   def __init__(self, n_classes):
     super(UnetDecoder3d, self).__init__()
+    self.block0 = UnetDecoderBlock(1024,512,ksize=(1,2,2),ssize=(1,2,2))
     self.block1 = UnetDecoderBlock(512,256,ksize=(1,2,2),ssize=(1,2,2))
-    self.block2 = UnetDecoderBlock(256,128)
+    self.block2 = UnetDecoderBlock(256,128,ksize=(1,2,2),ssize=(1,2,2))
+    # self.block2 = UnetDecoderBlock(256,128)
     self.block3 = UnetDecoderBlock(128,64)
     self.block4 = UnetDecoderBlock(64,64)
     self.conv1 = nn.Conv3d(64,64, kernel_size=3, padding = 1)
-    self.bn1 = nn.BatchNorm3d(64)
+    # self.bn1 = nn.BatchNorm3d(64)
     self.conv2 = nn.Conv3d(64,n_classes, kernel_size=3, padding = 1)
-    self.bn2 = nn.BatchNorm3d(n_classes)
+    # self.bn2 = nn.BatchNorm3d(n_classes)
 
-  def forward(self, r55,r5, r4, r3, r2, support):
-    x = self.block1(r55, r5)
+  def forward(self, r66, r6,r5, r4, r3, r2, support):
+    x = self.block0(r66, r6)
+    x = self.block1(x, r5)
     x = self.block2(x, r4)
     x = self.block3(x, r3)
     x = self.block4(x, r2)
@@ -428,8 +427,9 @@ class UnetDecoder3d(nn.Module):
     # x = self.bn2(x)
     # x = F.relu(x)
     x = torch.tanh(x)
-
     return x
+
+  
 
 
 class ResnetDecoder3d(nn.Module): 
@@ -575,11 +575,35 @@ class ReflectionTransRes(BaseNetwork):
     self.decoder_trans = UnetDecoder3d(cfg.MODEL.N_CLASSES)
 
   def forward(self, x, ref=None):
-    r55, r5, r4, r3, r2 = self.encoder.forward(x, ref)
+    r66, r6, r5, r4, r3, r2 = self.encoder.forward(x, ref)
 
-    trans = self.decoder_trans.forward(r55, r5, r4, r3, r2, None)
+    trans = self.decoder_trans.forward(r66, r6, r5, r4, r3, r2, None)
     p = trans 
     return p
+
+class ReflectionTransResHan(BaseNetwork): 
+  def __init__(self, cfg):
+    super(ReflectionTransResHan, self).__init__()
+    self.encoder = UnetResEncoder3d(cfg.MODEL.PIXEL_MEAN, cfg.MODEL.PIXEL_STD)
+    self.decoder_trans = UnetDecoder3d(cfg.MODEL.N_CLASSES)
+    self.encoder1 = UnetResEncoder3d(cfg.MODEL.PIXEL_MEAN, cfg.MODEL.PIXEL_STD)
+    self.decoder_trans1 = UnetDecoder3d(cfg.MODEL.N_CLASSES)
+
+  def forward(self, x, ref=None):
+    print(x.shape)
+    # input is 4,3,4,256,256
+    halfx = F.interpolate(x,size = (4,128,128))
+    k66, k6, k5, k4, k3, k2 = self.encoder1.forward(halfx, ref)
+    trans1 = self.decoder_trans1.forward(k66, k6, k5, k4, k3, k2, None)
+    print(halfx.shape)
+    print(trans1.shape)
+
+    r66, r6, r5, r4, r3, r2 = self.encoder.forward(x, ref)
+    trans = self.decoder_trans.forward(r66, r6, r5, r4, r3, r2, None)
+    print(trans.shape)
+    p = trans 
+    return p
+
 
 
 
