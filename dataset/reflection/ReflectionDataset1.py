@@ -4,7 +4,7 @@ import os
 import random
 import numpy as np
 from PIL import Image
-from dataset.BaseDataset import VideoDataset, INFO, IMAGES_,IMAGES_TRANS,IMAGES_REF,IMAGES_SYNTH, TARGETS
+from dataset.BaseDataset import VideoDataset, INFO, IMAGES_,IMAGES_TRANS,IMAGES_REF,IMAGES_SYNTH, TARGETS,IMAGES_TRANS_HALF,IMAGES_REF_HALF,IMAGES_SYNTH_HALF
 from utils.Resize import ResizeMode
 
 
@@ -118,9 +118,16 @@ class ReflectionDataset1(VideoDataset):
                         images_trans = [os.path.join(image_dir_trans, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
                         images_synth = [os.path.join(image_dir_synth, _video, '{:d}.jpg'.format(s)) for s in np.sort(support_indices)]
 
+
                         sample[IMAGES_REF] = images_ref
                         sample[IMAGES_TRANS] = images_trans
                         sample[IMAGES_SYNTH] = images_synth
+
+                        # images half 
+                        # sample[IMAGES_REF_HALF] = images_ref_half
+                        # sample[IMAGES_TRANS_HALF] = images_trans_half
+                        # sample[IMAGES_SYNTH_HALF] = images_synth_half
+
 
                         sample[INFO]['video'] = _video
                         sample[INFO]['num_frames'] = num_frames

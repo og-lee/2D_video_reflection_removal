@@ -313,12 +313,12 @@ class UnetResBlock(nn.Module):
     return x1, x2
 
 class UnetResEncoder3d(nn.Module):
-  def __init__(self, pixel_mean, pixel_std):
+  def __init__(self, pixel_mean, pixel_std, insize = 3, norm = True):
     super(UnetResEncoder3d, self).__init__()
     # self.conv1_p = nn.Conv3d(1, 64, kernel_size=7, stride=(1, 2, 2),
                             #  padding=(3, 3, 3), bias=False)
     # self.block1 = UnetBlock(3,64,poolk=(1,3,3), pools=(1,2,2), poolp=(0,1,1))
-    self.conv1 = nn.Conv3d(3, 64, kernel_size=3,padding = 1, padding_mode = 'replicate')
+    self.conv1 = nn.Conv3d(insize, 64, kernel_size=3,padding = 1, padding_mode = 'replicate')
     self.bn1 = nn.BatchNorm3d(64)
     self.block1 = UnetResBlock(64,64)
     self.block2 = UnetResBlock(64,128)
@@ -329,11 +329,13 @@ class UnetResEncoder3d(nn.Module):
     
     self.register_buffer('mean', torch.FloatTensor(pixel_mean).view(1, 3, 1, 1, 1))
     self.register_buffer('std', torch.FloatTensor(pixel_std).view(1, 3, 1, 1, 1))
+    self.normalize = norm
 
   def forward(self, in_f, in_p=None):
     assert in_f is not None or in_p is not None
-    f = (in_f * 255.0 - self.mean) / self.std
-    f /= 255.0
+    if self.normalize: 
+      f = (in_f * 255.0 - self.mean) / self.std
+      f /= 255.0
 
     x = self.conv1(in_f)
     x = self.bn1(x)
@@ -584,25 +586,24 @@ class ReflectionTransRes(BaseNetwork):
 class ReflectionTransResHan(BaseNetwork): 
   def __init__(self, cfg):
     super(ReflectionTransResHan, self).__init__()
-    self.encoder = UnetResEncoder3d(cfg.MODEL.PIXEL_MEAN, cfg.MODEL.PIXEL_STD)
-    self.decoder_trans = UnetDecoder3d(cfg.MODEL.N_CLASSES)
-    self.encoder1 = UnetResEncoder3d(cfg.MODEL.PIXEL_MEAN, cfg.MODEL.PIXEL_STD)
+    self.encoder1 = UnetResEncoder3d(cfg.MODEL.PIXEL_MEAN, cfg.MODEL.PIXEL_STD, insize=3)
     self.decoder_trans1 = UnetDecoder3d(cfg.MODEL.N_CLASSES)
 
-  def forward(self, x, ref=None):
-    print(x.shape)
-    # input is 4,3,4,256,256
-    halfx = F.interpolate(x,size = (4,128,128))
-    k66, k6, k5, k4, k3, k2 = self.encoder1.forward(halfx, ref)
-    trans1 = self.decoder_trans1.forward(k66, k6, k5, k4, k3, k2, None)
-    print(halfx.shape)
-    print(trans1.shape)
+    self.encoder = UnetResEncoder3d(cfg.MODEL.PIXEL_MEAN, cfg.MODEL.PIXEL_STD, insize=9, norm=False)
+    self.decoder_trans = UnetDecoder3d(cfg.MODEL.N_CLASSES)
 
-    r66, r6, r5, r4, r3, r2 = self.encoder.forward(x, ref)
+  def forward(self, x, x_half, ref=None):
+    # input is 4,3,4,256,256
+    k66, k6, k5, k4, k3, k2 = self.encoder1.forward(x_half, ref)
+    trans1 = self.decoder_trans1.forward(k66, k6, k5, k4, k3, k2, None)
+
+    up_trans1 = F.interpolate(trans1, scale_factor=(1,2,2), mode='trilinear')
+    half_result = torch.cat((up_trans1, x),dim = 1)
+
+    r66, r6, r5, r4, r3, r2 = self.encoder.forward(half_result, ref)
     trans = self.decoder_trans.forward(r66, r6, r5, r4, r3, r2, None)
-    print(trans.shape)
     p = trans 
-    return p
+    return p, trans1
 
 
 

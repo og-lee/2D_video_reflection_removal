@@ -67,39 +67,29 @@ def compute_loss(input_dict, pred_dict, target_dict, cfg):
   return result
 
 
-def compute_loss1(input_dict, pred, cfg): 
+def compute_loss1(input_dict, pred, pred_half, cfg): 
   result = {'total_loss': torch.tensor(0).float().cuda()}
   # input dict has synth, trans, ref images 
   # pred is C D H W 
-  raw_predict = pred 
   trans = input_dict['input_trans']
   ref = input_dict['input_ref']
-  synth = input_dict['input_synth']
+  trans_half = input_dict['input_trans_half']
+  ref_half = input_dict['input_ref_half']
 
-  # these are bxcxdxhxw
-  # pred = torch.squeeze(pred[0])
-  # trans = torch.squeeze(trans)
-  # ref = torch.squeeze(ref)
-
-
-  # pred_frames = torch.transpose(pred,1,0)
-  # trans_frames = torch.transpose(trans,1,0)
-  # ref_frames = torch.transpose(ref,1,0)
-
-  # diff_trans = F.mse_loss(trans_frames[:,:,:,:] , pred_frames[:,0:3,:,:])
-  # diff_ref = F.mse_loss(ref_frames[:,:,:,:] , pred_frames[:,3:6,:,:]) 
-
-  # diff_trans = F.l1_loss(trans_frames[:,:,:,:] , pred_frames[:,0:3,:,:])
-  # diff_ref = F.l1_loss(ref_frames[:,:,:,:] , pred_frames[:,3:6,:,:]) 
-  # print(pred.shape)
   diff_trans = F.l1_loss(trans[:,:,:,:,:] , pred[:,0:3,:,:,:])
   diff_ref = F.l1_loss(ref[:,:,:,:,:] , pred[:,3:6,:,:,:]) 
+  diff_trans_half = F.l1_loss(trans_half[:,:,:,:,:] , pred_half[:,0:3,:,:,:])
+  diff_ref_half = F.l1_loss(ref_half[:,:,:,:,:] , pred_half[:,3:6,:,:,:])
 
-  # loss = diff_trans + diff_ref
   result['trans_loss'] = diff_trans
   result['ref_loss'] = diff_ref
+  result['trans_half_loss'] = diff_trans_half
+  result['ref_half_loss'] = diff_ref_half
+
   result['total_loss'] += diff_trans 
   result['total_loss'] += diff_ref
+  result['total_loss'] += diff_trans_half
+  result['total_loss'] += diff_ref_half
 
   return result
 

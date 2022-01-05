@@ -20,6 +20,11 @@ IMAGES_REF = 'images_ref'
 IMAGES_TRANS = 'images_trans'
 IMAGES_SYNTH = 'images_synth'
 
+IMAGES_REF_HALF = 'images_ref_half'
+IMAGES_TRANS_HALF = 'images_trans_half'
+IMAGES_SYNTH_HALF = 'images_synth_half'
+
+
 INFO = 'info'
 
 
@@ -47,6 +52,10 @@ class BaseDataset(Dataset):
     tensors['images_ref'] = tensors['images_ref'].astype(np.float32) / 255.0
     tensors['images_trans'] = tensors['images_trans'].astype(np.float32) / 255.0
     tensors['images_synth'] = tensors['images_synth'].astype(np.float32) / 255.0
+    tensors['images_ref_half'] = tensors['images_ref_half'].astype(np.float32) / 255.0
+    tensors['images_trans_half'] = tensors['images_trans_half'].astype(np.float32) / 255.0
+    tensors['images_synth_half'] = tensors['images_synth_half'].astype(np.float32) / 255.0
+
     return tensors
 
   def is_train(self):
@@ -72,7 +81,6 @@ class BaseDataset(Dataset):
 
   def read_sample(self, sample):
     # targets = self.read_target(sample)
-
 
     if self.mode == 'test':
       ref = map(imread, sample['images_ref'])
@@ -118,6 +126,9 @@ class BaseDataset(Dataset):
         data[key] = [val]
 
     return data
+
+
+  
 
   def read_target(self, sample):
     return map(lambda x: np.array(Image.open(x).convert('P'), dtype=np.uint8), sample['targets'])
@@ -197,7 +208,7 @@ class VideoDataset(BaseDataset):
 
     padded_tensors = tensors_resized.copy()
     # keys = ['images', 'targets']
-    keys = ['images_ref','images_trans','images_synth']
+    keys = ['images_ref','images_trans','images_synth','images_ref_half','images_trans_half','images_synth_half']
 
     for key in keys:
       pt = []
@@ -230,13 +241,44 @@ class VideoDataset(BaseDataset):
       beta = np.random.uniform(0,5)
       synth_images, ref_images = synthesize_video1(trans_tensors_resized['images'], ref_tensors_resized['images'], self.nonlinear_map, alpha, beta)
 
+      
+      # 
+      images_ref_half = []
+      images_trans_half = []
+      images_synth_half = []
+
+      for i in range(len(synth_images)): 
+        data = {"image_ref": ref_images[i], "image_trans": trans_tensors_resized['images'][i], "image_synth": synth_images[i]}
+        resizeshape = tuple(int(t/2) for t in self.resize_shape)
+        data = resize(data, self.resize_mode, resizeshape)
+        images_ref_half += [data['image_ref']]
+        images_trans_half += [data['image_trans']]
+        images_synth_half += [data['image_synth']]
+
+      images_ref_h = np.stack(images_ref_half)
+      images_trans_h = np.stack(images_trans_half)
+      images_synth_h = np.stack(images_synth_half)
+      # 
       ref_images = np.stack(ref_images)
       synth_images = np.stack(synth_images)
+
+      # print(ref_images.shape)
+      # print(synth_images.shape)
+      # print(trans_tensors_resized['images'].shape)
+      # print(images_ref_h.shape)
+      # print(images_trans_h.shape)
+      # print(images_synth_h.shape)
+      # print()
       
       tensors_resized = {}
       tensors_resized['images_ref'] = ref_images 
       tensors_resized['images_trans'] = trans_tensors_resized['images']
       tensors_resized['images_synth'] = synth_images
+
+      tensors_resized['images_ref_half'] = images_ref_h 
+      tensors_resized['images_trans_half'] = images_trans_h 
+      tensors_resized['images_synth_half'] =images_synth_h 
+
       tensors_resized['transinfo'] = trans_tensors_resized['info']
       tensors_resized['refinfo'] = ref_tensors_resized['info']
 
@@ -245,30 +287,70 @@ class VideoDataset(BaseDataset):
       #   cv2.imwrite('./tmp/{}_{}synth.jpg'.format(str(idx),str(i)),cv2.cvtColor(synth_images[i],cv2.COLOR_RGB2BGR))
       #   cv2.imwrite('./tmp/{}_{}trans.jpg'.format(str(idx),str(i)),cv2.cvtColor(trans_tensors_resized['images'][i],cv2.COLOR_RGB2BGR))
 
+      #   cv2.imwrite('./tmp/{}_{}ref_h.jpg'.format(str(idx),str(i)),cv2.cvtColor(images_ref_h[i],cv2.COLOR_RGB2BGR))
+      #   cv2.imwrite('./tmp/{}_{}synth_h.jpg'.format(str(idx),str(i)),cv2.cvtColor(images_synth_h[i],cv2.COLOR_RGB2BGR))
+      #   cv2.imwrite('./tmp/{}_{}trans_h.jpg'.format(str(idx),str(i)),cv2.cvtColor(images_trans_h[i],cv2.COLOR_RGB2BGR))
+
       padded_tensors = self.pad_tensors(tensors_resized)
       padded_tensors = self.normalise(padded_tensors)
-
-      # print(trans_tensors_resized['images'].shape)
-      # print(ref_tensors_resized['images'].shape)
-      # do synthesizing here 
 
 
     elif self.mode == 'test': 
       sample = self.samples[idx]
       tensors_resized = self.read_sample(sample)
-      padded_tensors = self.pad_tensors(tensors_resized)
-      padded_tensors = self.normalise(padded_tensors)
+
+      images_ref_half = []
+      images_trans_half = []
+      images_synth_half = []
+
+      for i in range(len(tensors_resized['images_ref'])): 
+        data = {"image_ref": tensors_resized['images_ref'][i], "image_trans": tensors_resized['images_trans'][i], "image_synth": tensors_resized['images_synth'][i]}
+        resizeshape = tuple(int(t/2) for t in self.resize_shape)
+        data = resize(data, self.resize_mode, resizeshape)
+        images_ref_half += [data['image_ref']]
+        images_trans_half += [data['image_trans']]
+        images_synth_half += [data['image_synth']]
+
+        images_ref_h = np.stack(images_ref_half)
+        images_trans_h = np.stack(images_trans_half)
+        images_synth_h = np.stack(images_synth_half)
+
+        tensors_resized['images_ref_half'] = images_ref_h
+        tensors_resized['images_trans_half'] = images_trans_h
+        tensors_resized['images_synth_half'] = images_synth_h
+
+
+        # for i, val in enumerate(images_ref_h):
+        #   cv2.imwrite('./tmp/{}_{}ref.jpg'.format(str(idx),str(i)),cv2.cvtColor(tensors_resized['images_ref'][i],cv2.COLOR_RGB2BGR))
+        #   cv2.imwrite('./tmp/{}_{}synth.jpg'.format(str(idx),str(i)),cv2.cvtColor(tensors_resized['images_synth'][i],cv2.COLOR_RGB2BGR))
+        #   cv2.imwrite('./tmp/{}_{}trans.jpg'.format(str(idx),str(i)),cv2.cvtColor(tensors_resized['images_trans'][i],cv2.COLOR_RGB2BGR))
+
+        #   cv2.imwrite('./tmp/{}_{}ref_h.jpg'.format(str(idx),str(i)),cv2.cvtColor(images_ref_h[i],cv2.COLOR_RGB2BGR))
+        #   cv2.imwrite('./tmp/{}_{}synth_h.jpg'.format(str(idx),str(i)),cv2.cvtColor(images_synth_h[i],cv2.COLOR_RGB2BGR))
+        #   cv2.imwrite('./tmp/{}_{}trans_h.jpg'.format(str(idx),str(i)),cv2.cvtColor(images_trans_h[i],cv2.COLOR_RGB2BGR))
+
+
+        padded_tensors = self.pad_tensors(tensors_resized)
+        padded_tensors = self.normalise(padded_tensors)
+
 
     if self.mode == 'train': 
       return {"images_ref": np.transpose(padded_tensors['images_ref'], (3, 0, 1, 2)).astype(np.float32),
               "images_trans": np.transpose(padded_tensors['images_trans'], (3, 0, 1, 2)).astype(np.float32),
               "images_synth": np.transpose(padded_tensors['images_synth'], (3, 0, 1, 2)).astype(np.float32),
+              "images_ref_half": np.transpose(padded_tensors['images_ref_half'], (3, 0, 1, 2)).astype(np.float32),
+              "images_trans_half": np.transpose(padded_tensors['images_trans_half'], (3, 0, 1, 2)).astype(np.float32),
+              "images_synth_half": np.transpose(padded_tensors['images_synth_half'], (3, 0, 1, 2)).astype(np.float32),
               'transinfo': padded_tensors['transinfo'],
               'refinfo' : padded_tensors['refinfo']}
     else: 
       return {"images_ref": np.transpose(padded_tensors['images_ref'], (3, 0, 1, 2)).astype(np.float32),
               "images_trans": np.transpose(padded_tensors['images_trans'], (3, 0, 1, 2)).astype(np.float32),
               "images_synth": np.transpose(padded_tensors['images_synth'], (3, 0, 1, 2)).astype(np.float32),
+              "images_ref_half": np.transpose(padded_tensors['images_ref_half'], (3, 0, 1, 2)).astype(np.float32),
+              "images_trans_half": np.transpose(padded_tensors['images_trans_half'], (3, 0, 1, 2)).astype(np.float32),
+              "images_synth_half": np.transpose(padded_tensors['images_synth_half'], (3, 0, 1, 2)).astype(np.float32),
+
               'info': padded_tensors['info']}
 
 

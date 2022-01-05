@@ -147,35 +147,45 @@ class Trainer:
       input_synth = input_dict["images_synth"]
       input_ref = input_dict["images_ref"]
       input_trans = input_dict["images_trans"]
-      
-      # print(input_dict['info'])
-      # target_dict = dict([(k, t.float().cuda()) for k, t in input_dict['target'].items()])
+
+      input_synth_half = input_dict["images_synth_half"]
+      input_ref_half = input_dict["images_ref_half"]
+      input_trans_half = input_dict["images_trans_half"]
+
       if 'masks_guidance' in input_dict:
         masks_guidance = input_dict["masks_guidance"]
         masks_guidance = masks_guidance.float().cuda()
       else:
         masks_guidance = None
+
       data_time.update(time.time() - end)
       input_var = input_synth.float().cuda()
+      input_var_half = input_synth_half.float().cuda()
       # compute output
-      pred = self.model(input_var, masks_guidance)
+      pred, pred_half = self.model(input_var, input_var_half, masks_guidance)
       if isinstance(pred, list): 
             pred = pred[0]
       # pred = format_pred(pred)
 
       input_ref_var = input_ref.float().cuda() 
       input_trans_var = input_trans.float().cuda()
-      in_dict = {"input_synth": input_var, "input_trans": input_trans_var, "input_ref":input_ref_var,"guidance": masks_guidance}
+      input_ref_half_var = input_ref_half.float().cuda() 
+      input_trans_half_var = input_trans_half.float().cuda()
+
+
+      in_dict = {"input_synth": input_var, "input_trans": input_trans_var, "input_ref":input_ref_var,
+                 "input_synth_half": input_var_half, "input_trans_half": input_trans_half_var, "input_ref_half":input_ref_half_var,
+                 "guidance": masks_guidance}
 
       # loss_dict = compute_loss(in_dict, pred, target_dict, self.cfg)
-      loss_dict = compute_loss1(in_dict, pred, self.cfg)
+      loss_dict = compute_loss1(in_dict, pred, pred_half, self.cfg)
       # loss_dict = only_trans_loss(in_dict, pred, self.cfg)
 
       intrans = torch.reshape(torch.transpose(input_trans_var,1,2),(-1,input_trans_var.shape[1],input_trans_var.shape[3],input_trans_var.shape[4])) 
       pretrans = torch.reshape(torch.transpose(pred,1,2),(-1,pred.shape[1],pred.shape[3],pred.shape[4]))
       pretrans = pretrans[:,0:3,:,:]
       perloss = self.criterionVgg(intrans, pretrans)
-      perloss = perloss * 0.01
+      perloss = perloss * 0.1
       loss_dict['perloss'] = perloss
       loss_dict['total_loss'] += perloss
       total_loss = loss_dict['total_loss']
@@ -271,6 +281,10 @@ class Trainer:
           input_ref = input_dict["images_ref"]
           input_trans = input_dict["images_trans"]
 
+          input_synth_half = input_dict["images_synth_half"]
+          input_ref_half = input_dict["images_ref_half"]
+          input_trans_half = input_dict["images_trans_half"]
+
 
           if 'masks_guidance' in input_dict:
             masks_guidance = input_dict["masks_guidance"]
@@ -280,8 +294,9 @@ class Trainer:
           info = input_dict["info"]
 
           input_var = input_synth.float().cuda()
+          input_var_half = input_synth_half.float().cuda()
           # compute output
-          pred = self.model(input_var, masks_guidance)
+          pred, pred_half = self.model(input_var,input_var_half ,masks_guidance)
           # pred = format_pred(pred)
 
           input_ref_var = input_ref.float().cuda() 
@@ -374,7 +389,7 @@ class Trainer:
       # self.criterionVgg = VGGLoss1(torch.device('cuda'), vgg=self.vgg, normalize=False)
       self.criterionVgg = vgg.VGGLoss1(torch.device('cuda'), vgg=self.vgg, normalize=True)
 
-      # val_loss = self.eval()
+      val_loss = self.eval()
 
       start_epoch = self.epoch
       for epoch in range(start_epoch, self.cfg.TRAINING.NUM_EPOCHS):

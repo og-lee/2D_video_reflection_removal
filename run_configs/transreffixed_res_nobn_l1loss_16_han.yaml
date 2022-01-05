@@ -22,7 +22,7 @@ MODEL:
 TRAINING:
   BATCH_SIZE: 4
   OPTIMISER: "Adam"
-  BASE_LR: 0.0002
+  BASE_LR: 0.0001
   LR_SCHEDULERS: ["exponential", "step"]
   STEPS: (60000, 80000)
   MAX_ITER: 90000
@@ -61,5 +61,7 @@ DATALOADER:
 INFERENCE:
   ENGINE : "ReflectionInferenceEngine"
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_100iter_2b'
-NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han'
+# NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_nobn'
+# NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_4000'
+NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_perhigher'
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss'

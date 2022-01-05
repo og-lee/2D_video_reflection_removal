@@ -59,12 +59,14 @@ class ReflectionInferenceEngine(BaseInferenceEngine):
 
           info = input_dict['info'][0]
           input = input_dict["images_synth"]
+          input_half = input_dict['images_synth_half']
           batch_size = input.shape[0]
           # target_dict = dict([(k, t.float().cuda()) for k, t in input_dict['target'].items()])
           input_var = input.float().cuda()
+          input_var_half = input_half.float().cuda()
 
           # compute output
-          pred = model(input_var)
+          pred, pred_half = model(input_var, input_var_half)
           # pred = format_pred(pred)
 
           pred_mask = F.softmax(pred[0], dim=1)
@@ -72,6 +74,7 @@ class ReflectionInferenceEngine(BaseInferenceEngine):
 
           # self.save_images(pred, info) 
           self.save_images_wgt(pred, info, input_dict) 
+          self.save_images_wgt_small(pred_half, info, input_dict)
           # self.save_images_onlytrans(pred,info,input_dict)
 
           # assert batch_size == 1
@@ -202,6 +205,71 @@ class ReflectionInferenceEngine(BaseInferenceEngine):
       saveimg(gttranspth,gttrans[j])
       saveimg(gtrefpth, gtref[j])
       saveimg(gtsynthpth, gtsynth[j])
+
+  def save_images_wgt_small(self, pred, info, inputdict): 
+    pixel_mean = self.cfg.MODEL.PIXEL_MEAN
+    result_path = os.path.join(self.results_dir, info['video'][0])
+    gtpath = os.path.join(self.results_dir, info['video'][0],'gt')
+
+    gtsynth = inputdict['images_synth_half']
+    gtsynth = torch.squeeze(gtsynth[0])
+    gtsynth = torch.transpose(gtsynth,1,0)
+
+    gtref = inputdict['images_ref_half']
+    gtref = torch.squeeze(gtref[0])
+    gtref = torch.transpose(gtref,1,0)
+
+    gttrans = inputdict['images_trans_half']
+    gttrans = torch.squeeze(gttrans[0])
+    gttrans = torch.transpose(gttrans,1,0)
+
+    pred_trans = torch.squeeze(pred[0])
+    pred_trans = torch.transpose(pred_trans,1,0)
+
+    if not os.path.exists(result_path): 
+      os.makedirs(result_path)
+    if not os.path.exists(gtpath): 
+      os.makedirs(gtpath)
+
+    def saveimg(dirpath, v): 
+      print(v.shape)
+      value = torch.clone(v)
+      value = value.data.cpu().float().numpy()
+      value = np.transpose(value,(1,2,0))
+      value = value * 255.0 
+      value = value.astype(np.uint8)
+      value = cv2.cvtColor(value,cv2.COLOR_RGB2BGR)
+      cv2.imwrite(dirpath,value)
+
+
+
+    temp = result_path 
+    for j,val in enumerate(info['support_indices'][0]): 
+      # temp = os.path.join(result_path,str(info['support_indices'][0][0].item()))
+      imagepath = os.path.join(temp,'trans_half'+str(val.item())+'.jpg')
+      imagepath1 = os.path.join(temp,'ref_half'+str(val.item())+'.jpg')
+
+      gttranspth = os.path.join(gtpath,'trans_half'+str(val.item())+'.jpg')
+      gtrefpth = os.path.join(gtpath,'ref_half'+str(val.item())+'.jpg')
+      gtsynthpth = os.path.join(gtpath,'synth_half'+str(val.item())+'.jpg')
+
+      img = pred_trans[j]
+      image = img.data.cpu().float().numpy()
+      image = np.transpose(image,(1,2,0))
+      image = image * 255.0 
+      # pixel_mean = np.array([[pixel_mean]])
+      # image[:,:,0:3] = image[:,:,0:3] + pixel_mean 
+      # image[:,:,3:6] = image[:,:,3:6] + pixel_mean 
+      image = image.astype(np.uint8)
+      imagetrans = cv2.cvtColor(image[:,:,0:3],cv2.COLOR_RGB2BGR)
+      imageref = cv2.cvtColor(image[:,:,3:6],cv2.COLOR_RGB2BGR)
+      cv2.imwrite(imagepath,imagetrans)
+      cv2.imwrite(imagepath1,imageref)
+      
+      saveimg(gttranspth,gttrans[j])
+      saveimg(gtrefpth, gtref[j])
+      saveimg(gtsynthpth, gtsynth[j])
+
     
   def save_images_twodecoder(self, pred, info): 
     pixel_mean = self.cfg.MODEL.PIXEL_MEAN
