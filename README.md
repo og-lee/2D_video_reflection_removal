@@ -11,4 +11,3 @@ Pytorch  1.5.1 <br />
 Cuda : 10.2 <br />
 
 ![Synthetic dataset example](./img.PNG)
-![Reflection removal result](./img2.PNG)
