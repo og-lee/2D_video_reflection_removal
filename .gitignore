@@ -5,7 +5,12 @@ data/
 dataset1/
 dataset2/
 dataset3/
+480p/
 
+tmp/ 
+tmp1/
+tmp2/ 
+tmp3/
 
 *.jpg
 *.png
