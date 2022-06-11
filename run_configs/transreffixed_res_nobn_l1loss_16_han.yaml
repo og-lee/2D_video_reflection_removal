@@ -51,6 +51,7 @@ DATASETS:
   # TRAIN_ROOT: "/root/workplace//middle_project/"
   TRAIN_ROOT: "/root/workplace/middle_project/dataset3/"
   TEST: "ReflectionDataset1"
+  # TEST_ROOT: "/root/workplace/middle_project/dataset3/"
   TEST_ROOT: "/root/workplace/middle_project/dataset4/"
   MAX_TEMPORAL_GAP: 4
   IMSET : 'test.txt'
@@ -63,5 +64,5 @@ INFERENCE:
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_100iter_2b'
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_nobn'
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_4000'
-NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_perhigher'
+NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_morechannel_13840'
 # NAME: 'transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss'

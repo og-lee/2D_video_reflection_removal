@@ -142,16 +142,16 @@ class BaseDataset(Dataset):
   def __getitem__(self, idx):
     if self.mode == 'train': 
       sample = self.samples[idx]
-      # random sample another one 
-      ref_sampleidx = np.random.randint(0,len(self.samples),1)
-      ref_sample = self.samples[ref_sampleidx]
-      while sample['info']['video'] == ref_sample['info']['video'] : 
-        ref_sampleidx = np.random.randint(0,len(self.samples),1)
-        ref_sample = self.samples[ref_sampleidx]
+      # # random sample another one 
+      # ref_sampleidx = np.random.randint(0,len(self.samples),1)
+      # ref_sample = self.samples[ref_sampleidx]
+      # while sample['info']['video'] == ref_sample['info']['video'] : 
+      #   ref_sampleidx = np.random.randint(0,len(self.samples),1)
+      #   ref_sample = self.samples[ref_sampleidx]
 
-      trans_tensors_resized = self.read_sample(sample)
-      ref_tensors_resized = self.read_sample(ref_sample)
-      # do synthesizing here 
+      # trans_tensors_resized = self.read_sample(sample)
+      # ref_tensors_resized = self.read_sample(ref_sample)
+      # # do synthesizing here 
 
 
 
@@ -230,9 +230,16 @@ class VideoDataset(BaseDataset):
       np.random.seed()
       ref_sampleidx = np.random.randint(0,len(self.samples),1)
       ref_sample = self.samples[ref_sampleidx[0]]
+
+      # print(sample['info'])
+      # print(ref_sample['info'])
+      # print(len(self.samples))
+      # print(len(sample))
       while sample['info']['video'] == ref_sample['info']['video'] : 
         ref_sampleidx = np.random.randint(0,len(self.samples),1)
         ref_sample = self.samples[ref_sampleidx[0]]
+        # print(ref_sample['info']['video'])
+        # print(ref_sampleidx)
 
       trans_tensors_resized = self.read_sample(sample)
       ref_tensors_resized = self.read_sample(ref_sample)
@@ -294,10 +301,11 @@ class VideoDataset(BaseDataset):
       padded_tensors = self.pad_tensors(tensors_resized)
       padded_tensors = self.normalise(padded_tensors)
 
-
     elif self.mode == 'test': 
       sample = self.samples[idx]
       tensors_resized = self.read_sample(sample)
+      # print(len(self.samples))
+      # print(sample['info'])
 
       images_ref_half = []
       images_trans_half = []

@@ -58,6 +58,7 @@ class ReflectionInferenceEngine(BaseInferenceEngine):
             continue
 
           info = input_dict['info'][0]
+          # info = input_dict['transinfo'][0]
           input = input_dict["images_synth"]
           input_half = input_dict['images_synth_half']
           batch_size = input.shape[0]
@@ -69,45 +70,10 @@ class ReflectionInferenceEngine(BaseInferenceEngine):
           pred, pred_half = model(input_var, input_var_half)
           # pred = format_pred(pred)
 
-          pred_mask = F.softmax(pred[0], dim=1)
-          clip_frames = info['support_indices'][0].data.cpu().numpy()
-
           # self.save_images(pred, info) 
           self.save_images_wgt(pred, info, input_dict) 
           self.save_images_wgt_small(pred_half, info, input_dict)
           # self.save_images_onlytrans(pred,info,input_dict)
-
-          # assert batch_size == 1
-          # for i, f in enumerate(clip_frames):
-          #   if f in all_semantic_pred:
-          #     # all_semantic_pred[clip_frames] += [torch.argmax(pred_mask, dim=1).data.cpu().int()[0]]
-          #     all_semantic_pred[f] += [pred_mask[0, :, i].data.cpu().float()]
-          #   else:
-          #     all_semantic_pred[f] = [pred_mask[0, :, i].data.cpu().float()]
-          #     # Use binary masks
-          #     if 'gt_frames' not in info or f in info['gt_frames']:
-          #       all_targets[f] = (target_dict['mask'] != 0)[0, 0, i].data.cpu().float()
-
-        # masks = [torch.stack(pred).mean(dim=0) for key, pred in all_semantic_pred.items() if key in all_targets]
-        # iou = iou_fixed_torch(torch.stack(masks).cuda(), torch.stack(list(all_targets.values())).cuda())
-        # ious_per_video.update(iou, 1)
-        # ious.update(iou, 1)
-        # f, mae, pred_flattened, gt_flattened = self.save_results(all_semantic_pred, all_targets, info)
-        # fs.update(f)
-        # maes.update(mae)
-        # pred_for_eval += [pred_flattened]
-        # gt_for_eval += [gt_flattened]
-        # logging.info(
-          # 'Sequence {}: F_max {}  MAE {} IOU {}'.format(input_dict['info'][0]['video'], f, mae, ious_per_video.avg))
-
-    # print("IOU: {}".format(iou))
-    # gt = np.hstack(gt_for_eval).flatten()
-    # p = np.hstack(pred_for_eval).flatten()
-    # precision, recall, _ = precision_recall_curve(gt, p)
-    # Fmax = 2 * (precision * recall) / (precision + recall)
-    # mae = np.mean(np.abs(p - gt))
-    # logging.info('Finished Inference F measure: {:.5f} MAE: {: 5f} IOU: {:5f}'
-    #              .format(np.max(Fmax), mae, ious.avg))
 
   
   def save_images(self, pred, info): 

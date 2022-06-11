@@ -287,13 +287,13 @@ class UnetEncoder3d(nn.Module):
     return s4, s3, s2, s1 
 
 class UnetResBlock(nn.Module): 
-  def __init__(self, inchannel, outchannel, pools = (2,2,2) , poolk = (3,3,3), poolp = (1,1,1)):
+  def __init__(self, inchannel, outchannel, ksize = (3,3,3) , psize = (1,1,1), ssize = (2,2,2)):
     super(UnetResBlock, self).__init__()
-    self.conv1 = nn.Conv3d(inchannel, inchannel, kernel_size=3,padding = 1, padding_mode = 'replicate')
+    self.conv1 = nn.Conv3d(inchannel, inchannel, kernel_size=ksize,padding = psize, padding_mode = 'replicate')
     self.bn1 = nn.BatchNorm3d(inchannel)
-    self.conv2 = nn.Conv3d(inchannel, inchannel, kernel_size=3,padding = 1, padding_mode = 'replicate')
+    self.conv2 = nn.Conv3d(inchannel, inchannel, kernel_size=ksize,padding = psize, padding_mode = 'replicate')
     self.bn2 = nn.BatchNorm3d(inchannel)
-    self.conv3 = nn.Conv3d(inchannel, outchannel, kernel_size=3,padding = 1,stride = 2, padding_mode = 'replicate')
+    self.conv3 = nn.Conv3d(inchannel, outchannel, kernel_size=ksize,padding = psize,stride = ssize, padding_mode = 'replicate')
     self.bn3 = nn.BatchNorm3d(outchannel)
 
   def forward(self, x): 
@@ -312,6 +312,40 @@ class UnetResBlock(nn.Module):
 
     return x1, x2
 
+# class UnetResEncoder3d(nn.Module):
+#   def __init__(self, pixel_mean, pixel_std, insize = 3, norm = True):
+#     super(UnetResEncoder3d, self).__init__()
+#     # self.conv1_p = nn.Conv3d(1, 64, kernel_size=7, stride=(1, 2, 2),
+#                             #  padding=(3, 3, 3), bias=False)
+#     # self.block1 = UnetBlock(3,64,poolk=(1,3,3), pools=(1,2,2), poolp=(0,1,1))
+#     self.conv1 = nn.Conv3d(insize, 64, kernel_size=3,padding = 1, padding_mode = 'replicate')
+#     self.bn1 = nn.BatchNorm3d(64)
+#     self.block1 = UnetResBlock(64,64)
+#     self.block2 = UnetResBlock(64,128)
+#     self.block3 = UnetResBlock(128,256,ksize=(1,3,3),psize=(0,1,1),ssize=(1,2,2))
+#     self.block4 = UnetResBlock(256,512,ksize=(1,3,3),psize=(0,1,1),ssize=(1,2,2))
+#     self.block5 = UnetResBlock(512,1024,ksize=(1,3,3),psize=(0,1,1),ssize=(1,2,2))
+    
+#     self.register_buffer('mean', torch.FloatTensor(pixel_mean).view(1, 3, 1, 1, 1))
+#     self.register_buffer('std', torch.FloatTensor(pixel_std).view(1, 3, 1, 1, 1))
+#     self.normalize = norm
+
+#   def forward(self, in_f, in_p=None):
+#     assert in_f is not None or in_p is not None
+#     if self.normalize: 
+#       f = (in_f * 255.0 - self.mean) / self.std
+#       f /= 255.0
+
+#     x = self.conv1(in_f)
+#     x = self.bn1(x)
+#     x = F.relu(x)
+#     s1, s11 = self.block1(x)
+#     s2, s22 = self.block2(s11)
+#     s3, s33 = self.block3(s22)
+#     s4, s44 = self.block4(s33)
+#     s5, s55 = self.block5(s44)
+
+#     return s55, s5, s4, s3, s2, s1 
 class UnetResEncoder3d(nn.Module):
   def __init__(self, pixel_mean, pixel_std, insize = 3, norm = True):
     super(UnetResEncoder3d, self).__init__()
@@ -320,12 +354,11 @@ class UnetResEncoder3d(nn.Module):
     # self.block1 = UnetBlock(3,64,poolk=(1,3,3), pools=(1,2,2), poolp=(0,1,1))
     self.conv1 = nn.Conv3d(insize, 64, kernel_size=3,padding = 1, padding_mode = 'replicate')
     self.bn1 = nn.BatchNorm3d(64)
-    self.block1 = UnetResBlock(64,64)
-    self.block2 = UnetResBlock(64,128)
-    self.block3 = UnetResBlock(128,256)
-    self.block4 = UnetResBlock(256,512)
-
-    self.block5 = UnetResBlock(512,1024)
+    self.block1 = UnetResBlock(64,128)
+    self.block2 = UnetResBlock(128,256)
+    self.block3 = UnetResBlock(256,512,ksize=(1,3,3),psize=(0,1,1),ssize=(1,2,2))
+    self.block4 = UnetResBlock(512,1024,ksize=(1,3,3),psize=(0,1,1),ssize=(1,2,2))
+    self.block5 = UnetResBlock(1024,2048,ksize=(1,3,3),psize=(0,1,1),ssize=(1,2,2))
     
     self.register_buffer('mean', torch.FloatTensor(pixel_mean).view(1, 3, 1, 1, 1))
     self.register_buffer('std', torch.FloatTensor(pixel_std).view(1, 3, 1, 1, 1))
@@ -403,15 +436,43 @@ class DecoderBlockInter(nn.Module):
     x = F.relu(x)
     return x
 
+# class UnetDecoder3d(nn.Module): 
+#   def __init__(self, n_classes):
+#     super(UnetDecoder3d, self).__init__()
+#     self.block0 = UnetDecoderBlock(1024,512,ksize=(1,2,2),ssize=(1,2,2))
+#     self.block1 = UnetDecoderBlock(512,256,ksize=(1,2,2),ssize=(1,2,2))
+#     self.block2 = UnetDecoderBlock(256,128,ksize=(1,2,2),ssize=(1,2,2))
+#     # self.block2 = UnetDecoderBlock(256,128)
+#     self.block3 = UnetDecoderBlock(128,64)
+#     self.block4 = UnetDecoderBlock(64,64)
+#     self.conv1 = nn.Conv3d(64,64, kernel_size=3, padding = 1)
+#     # self.bn1 = nn.BatchNorm3d(64)
+#     self.conv2 = nn.Conv3d(64,n_classes, kernel_size=3, padding = 1)
+#     # self.bn2 = nn.BatchNorm3d(n_classes)
+
+#   def forward(self, r66, r6,r5, r4, r3, r2, support):
+#     x = self.block0(r66, r6)
+#     x = self.block1(x, r5)
+#     x = self.block2(x, r4)
+#     x = self.block3(x, r3)
+#     x = self.block4(x, r2)
+#     x = self.conv1(x)
+#     # x = self.bn1(x)
+#     x = self.conv2(F.relu(x))
+#     # x = self.bn2(x)
+#     # x = F.relu(x)
+#     x = torch.tanh(x)
+#     return x
+
 class UnetDecoder3d(nn.Module): 
   def __init__(self, n_classes):
     super(UnetDecoder3d, self).__init__()
-    self.block0 = UnetDecoderBlock(1024,512,ksize=(1,2,2),ssize=(1,2,2))
-    self.block1 = UnetDecoderBlock(512,256,ksize=(1,2,2),ssize=(1,2,2))
-    self.block2 = UnetDecoderBlock(256,128,ksize=(1,2,2),ssize=(1,2,2))
+    self.block0 = UnetDecoderBlock(2048,1024,ksize=(1,2,2),ssize=(1,2,2))
+    self.block1 = UnetDecoderBlock(1024,512,ksize=(1,2,2),ssize=(1,2,2))
+    self.block2 = UnetDecoderBlock(512,256,ksize=(1,2,2),ssize=(1,2,2))
     # self.block2 = UnetDecoderBlock(256,128)
-    self.block3 = UnetDecoderBlock(128,64)
-    self.block4 = UnetDecoderBlock(64,64)
+    self.block3 = UnetDecoderBlock(256,128)
+    self.block4 = UnetDecoderBlock(128,64)
     self.conv1 = nn.Conv3d(64,64, kernel_size=3, padding = 1)
     # self.bn1 = nn.BatchNorm3d(64)
     self.conv2 = nn.Conv3d(64,n_classes, kernel_size=3, padding = 1)
@@ -430,6 +491,7 @@ class UnetDecoder3d(nn.Module):
     # x = F.relu(x)
     x = torch.tanh(x)
     return x
+
 
   
 

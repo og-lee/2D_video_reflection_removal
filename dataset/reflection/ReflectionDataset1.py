@@ -57,6 +57,7 @@ class ReflectionDataset1(VideoDataset):
         # image_dir_synth = os.path.join(self.root, 'data', self.mode,'synthetic')
 
         # self.mode = 'train'
+
         image_dir = os.path.join(self.root,  self.mode)
 
         image_dir_ref = os.path.join(self.root,  self.mode,'reflect')
@@ -69,7 +70,8 @@ class ReflectionDataset1(VideoDataset):
             _imset_f = self.imset
         else:
             _imset_f = 'val.txt'
-
+        
+        print(_imset_f)
         with open(os.path.join(self.root, "ImageSets",_imset_f), "r") as lines:
             for line in lines:
                 _video = line.rstrip('\n')
@@ -122,12 +124,6 @@ class ReflectionDataset1(VideoDataset):
                         sample[IMAGES_REF] = images_ref
                         sample[IMAGES_TRANS] = images_trans
                         sample[IMAGES_SYNTH] = images_synth
-
-                        # images half 
-                        # sample[IMAGES_REF_HALF] = images_ref_half
-                        # sample[IMAGES_TRANS_HALF] = images_trans_half
-                        # sample[IMAGES_SYNTH_HALF] = images_synth_half
-
 
                         sample[INFO]['video'] = _video
                         sample[INFO]['num_frames'] = num_frames

@@ -144,6 +144,9 @@ class Trainer:
     for i, input_dict in enumerate(self.trainloader):
       # input = input_dict["images"]
       # inputs are synth images and should make transmission and reflection images 
+      # print(input_dict['transinfo'])
+      # print(input_dict['refinfo'])
+      # print()
       input_synth = input_dict["images_synth"]
       input_ref = input_dict["images_ref"]
       input_trans = input_dict["images_trans"]
@@ -241,7 +244,7 @@ class Trainer:
           save_name = '{}/{}.pth'.format(self.model_dir, self.iteration)
           save_checkpointV2(self.epoch, self.iteration, self.model, self.optimiser, save_name)
 
-        if self.iteration % 1000 == 0:
+        if self.iteration % 10 == 0:
           self.eval()
 
 
@@ -262,6 +265,7 @@ class Trainer:
     end = time.time()
     print("Starting validation for epoch {}".format(self.epoch), flush=True)
     trans_psnr_total = []
+    trans_psnr_total1 = []
     trans_ssim_total = []
     for seq in self.testset.get_video_ids():
       self.testset.set_video_id(seq)
@@ -274,6 +278,7 @@ class Trainer:
                               pin_memory=True)
       losses_video = AverageMeterDict()
       psnr_trans_arr = []
+      psnr_trans_arr1 = []
       ssim_trans_arr = []
       for i, input_dict in enumerate(testloader):
         with torch.no_grad():
@@ -295,13 +300,18 @@ class Trainer:
 
           input_var = input_synth.float().cuda()
           input_var_half = input_synth_half.float().cuda()
+          input_trans_half_var = input_trans_half.float().cuda()
+          input_ref_half_var = input_ref_half.float().cuda()
           # compute output
           pred, pred_half = self.model(input_var,input_var_half ,masks_guidance)
           # pred = format_pred(pred)
 
           input_ref_var = input_ref.float().cuda() 
           input_trans_var = input_trans.float().cuda()
-          in_dict = {"input_synth": input_var, "input_trans": input_trans_var, "input_ref":input_ref_var,"guidance": masks_guidance}
+
+          in_dict = {"input_synth": input_var, "input_trans": input_trans_var, "input_ref":input_ref_var,
+                 "input_synth_half": input_var_half, "input_trans_half": input_trans_half_var, "input_ref_half":input_ref_half_var,
+                 "guidance": masks_guidance}
 
           #  batch channel frames height width 
           # prediction and gt is 
@@ -310,6 +320,22 @@ class Trainer:
             pred = pred[0]
           else :
             original_pred = pred
+          
+          loss_dict = compute_loss1(in_dict,pred,pred_half,self.cfg)
+          total_loss = loss_dict['total_loss']
+
+          # self.iteration += 1
+
+          if torch.cuda.device_count() > 1:
+            reduced_loss = dict(
+              [(key, reduce_tensor(val, self.world_size).data.item()) for key, val in loss_dict.items()])
+          else:
+            reduced_loss = dict([(key, val.data.item()) for key, val in loss_dict.items()])
+          losses_video.update(reduced_loss, args.world_size)
+          losses.update(reduced_loss, args.world_size)
+
+          for k, v in losses.val.items():
+            self.writer.add_scalar("val_loss_{}".format(k), v, self.iteration)
             
           pred = torch.transpose(pred,1,2)
           pred = torch.reshape(pred, (-1,pred.shape[2],pred.shape[3],pred.shape[4]))
@@ -329,20 +355,13 @@ class Trainer:
           input_trans = input_trans.float().cuda()
           input_ref = input_ref.float().cuda()
 
-          # psnr 
-          # p = PSNR()
-          # psnrs = []
-          # print(i)
-          # for idx in range(len(input_trans)):
-          #   val = p(pred_trans[idx]*255.0,input_trans[idx]*255.0)
-          #   psnrs.append(val)
-          # print(psnrs)
 
           mse_trans = torch.mean((255*(pred_trans - input_trans))**2, dim=(1,2,3))
           mse_ref = torch.mean((255*(pred_ref - input_ref))**2, dim=(1,2,3))
 
           psnr_trans = 20 * torch.log10(255.0 / torch.sqrt(mse_trans))
           psnr_ref = 20 * torch.log10(255.0 / torch.sqrt(mse_ref))
+          psnr_trans1 = psnr_trans[0]
           psnr_trans = torch.mean(psnr_trans) 
           psnr_ref = torch.mean(psnr_ref) 
 
@@ -351,6 +370,7 @@ class Trainer:
           ref_ssim = pytorch_ssim.ssim(input_ref,pred_ref)
 
           psnr_trans_arr.append(psnr_trans)
+          psnr_trans_arr1.append(psnr_trans1)
           ssim_trans_arr.append(trans_ssim)
 
           torch.cuda.synchronize()
@@ -368,8 +388,10 @@ class Trainer:
             #   flush=True)
       trans_psnr_total.append(torch.mean(torch.tensor(psnr_trans_arr)))
       trans_ssim_total.append(torch.mean(torch.tensor(ssim_trans_arr)))
+      trans_psnr_total1.append(torch.mean(torch.tensor(psnr_trans_arr1)))
     print('total psnr')
-    print('trans psnr',trans_psnr_total)
+    print('trans psnr',trans_psnr_total, torch.mean(torch.tensor(trans_psnr_total)))
+    print('trans_psnr1',trans_psnr_total1, torch.mean(torch.tensor(trans_psnr_total1)))
     print('trans ssim',trans_ssim_total)
     if args.local_rank == 0:
       loss_str = ' '.join(["{}:{:4f}({:4f})".format(k, losses.val[k], losses.avg[k])
@@ -417,7 +439,7 @@ class Trainer:
       eval_all = True 
       if eval_all:
         # list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percept/')
-        list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_12_after/')
+        list_pths = os.listdir('./saved_models/transreffixed_res_nobn_l1loss_percep_newloader_lowerperloss_deeper_4_han_morechannel/')
         for f in list_pths: 
           if f.endswith('.pth'): 
             args.wts = args.wts.rsplit('/',1)[0] +'/'
@@ -430,6 +452,7 @@ class Trainer:
     elif args.task == 'infer':
       inference_engine = get_inference_engine(self.cfg)
       inference_engine.infer(self.testset, self.model)
+      # inference_engine.infer(self.trainset, self.model)
     else:
       raise ValueError("Unknown task {}".format(args.task))
 
